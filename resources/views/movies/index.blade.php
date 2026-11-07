@@ -1,56 +1,62 @@
 @extends('layouts.app')
 
-@section('title', 'All Movies')
+@section('title', 'Movie Collection')
 
 @section('content')
-    {{-- Success Alert Message --}}
-    @if (session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">Prepared by: Sean Patrick T. Buenafe | Block 4C</p>
+    <a href="{{ route('movies.index', ['featured' => 1]) }}" class="btn btn-primary btn-sm">View featured</a>
+</div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <p class="text-muted mb-0">Prepared by: Sean Patrick T. Buenafe | Block 4C</p>
-                </div>
-                <a href="{{ route('movies.featured') }}" class="btn btn-primary">View featured</a>
-            </div>
+<div class="alert alert-info py-2 mb-3">
+    <strong>Active filters:</strong> Genre: {{ $selectedGenre ?? 'All genres' }} | Director: {{ $selectedDirector ?? 'All directors' }}
+</div>
 
-            <div class="alert alert-info py-2">
-                <strong>Active filters:</strong> 
-                Genre: {{ $selectedGenre ? $selectedGenre : 'All genres' }} | 
-                Director: {{ $selectedDirector ? $selectedDirector : 'All directors' }}
-            </div>
+<div class="mb-3">
+    <label class="fw-bold d-block mb-1">Filter by Genre:</label>
+    <div class="d-flex gap-2 flex-wrap">
+        @foreach ($genres as $genre)
+            <a href="{{ route('movies.index', ['genre' => $genre->name, 'director' => $selectedDirector]) }}" 
+               class="btn btn-sm {{ $selectedGenre == $genre->name ? 'btn-primary' : 'btn-outline-primary' }}">
+                {{ $genre->name }}
+            </a>
+        @endforeach
+    </div>
+</div>
 
-            <div class="row mb-4">
-                <div class="col-md-6 mb-2">
-                    <label class="fw-bold d-block mb-1">Filter by Genre:</label>
-                    <a href="{{ route('movies.index', ['genre' => 'Sci-Fi', 'director' => $selectedDirector]) }}" 
-                       class="btn btn-sm {{ $selectedGenre === 'Sci-Fi' ? 'btn-primary' : 'btn-outline-primary' }}">Sci-Fi</a>
-                    <a href="{{ route('movies.index', ['genre' => 'Action', 'director' => $selectedDirector]) }}" 
-                       class="btn btn-sm {{ $selectedGenre === 'Action' ? 'btn-primary' : 'btn-outline-primary' }}">Action</a>
-                    <a href="{{ route('movies.index', ['genre' => 'Crime', 'director' => $selectedDirector]) }}" 
-                       class="btn btn-sm {{ $selectedGenre === 'Crime' ? 'btn-primary' : 'btn-outline-primary' }}">Crime</a>
-                </div>
+<div class="mb-3">
+    <label class="fw-bold d-block mb-1">Filter by Director:</label>
+    <div class="d-flex gap-2 flex-wrap">
+        @php
+            $directors = \App\Models\Movie::select('director')->distinct()->pluck('director');
+        @endphp
+        @foreach ($directors as $director)
+            <a href="{{ route('movies.index', ['genre' => $selectedGenre, 'director' => $director]) }}" 
+               class="btn btn-sm {{ $selectedDirector == $director ? 'btn-warning' : 'btn-outline-warning text-dark' }}">
+                {{ $director }}
+            </a>
+        @endforeach
+    </div>
+</div>
 
-                <div class="col-md-6 mb-2">
-                    <label class="fw-bold d-block mb-1">Filter by Director:</label>
-                    <a href="{{ route('movies.index', ['genre' => $selectedGenre, 'director' => 'Christopher Nolan']) }}" 
-                       class="btn btn-sm {{ $selectedDirector === 'Christopher Nolan' ? 'btn-warning' : 'btn-outline-warning' }}">Christopher Nolan</a>
-                    <a href="{{ route('movies.index', ['genre' => $selectedGenre, 'director' => 'Quentin Tarantino']) }}" 
-                       class="btn btn-sm {{ $selectedDirector === 'Quentin Tarantino' ? 'btn-warning' : 'btn-outline-warning' }}">Quentin Tarantino</a>
-                </div>
-            </div>
+<div class="mb-4 d-flex gap-2">
+    <a href="{{ route('movies.create') }}" class="btn btn-success">Add movie</a>
+    <a href="{{ route('movies.index') }}" class="btn btn-outline-secondary">Clear both filters</a>
+</div>
 
-            <div class="mb-3">
-                <a href="{{ route('movies.create') }}" class="btn btn-success">Add movie</a>
-                <a href="{{ route('movies.index') }}" class="btn btn-outline-secondary">Clear both filters</a>
-            </div>
+<h1 class="text-primary fw-bold mb-3">Movie Collection</h1>
 
-            <table class="table table-striped align-middle">
+@if (session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
                         <th>#</th>
@@ -59,6 +65,7 @@
                         <th>Genre</th>
                         <th>Year</th>
                         <th>Director</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -66,25 +73,33 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $movie->id }}</td>
+                            <td><a href="{{ route('movies.show', $movie) }}" class="text-decoration-none fw-bold">{{ $movie->title }}</a></td>
                             <td>
-                                <a href="{{ route('movies.show', $movie->id) }}" class="text-decoration-none fw-semibold">
-                                    {{ $movie->title }}
-                                </a>
+                                <span class="badge bg-secondary">{{ $movie->genre->name ?? 'N/A' }}</span>
                             </td>
-                            <td><span class="badge bg-info text-dark">{{ $movie->genre->name ?? 'N/A' }}</span></td>
                             <td>{{ $movie->year }}</td>
                             <td>{{ $movie->director }}</td>
+                            <td>
+                                <a href="{{ route('movies.edit', $movie) }}" class="btn btn-sm btn-warning">Edit</a>
+                                <form action="{{ route('movies.destroy', $movie) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this movie?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">No movies found.</td>
+                            <td colspan="7" class="text-center py-4 text-muted">No movies found.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+</div>
 
-    {{-- Query Count Display at the Bottom --}}
-    <p class="mt-3 text-muted">Queries: {{ $queryCount ?? 0 }}</p>
+<div class="mt-3 text-muted small">
+    Queries: {{ $queryCount ?? 0 }}
+</div>
 @endsection

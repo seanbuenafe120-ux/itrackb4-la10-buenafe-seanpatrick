@@ -5,36 +5,35 @@ namespace App\Http\Controllers;
 use App\Models\Movie;
 use App\Models\Genre;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class MovieController extends Controller
 {
     public function index(Request $request)
     {
-        DB::enableQueryLog();
-
-        $selectedGenre = $request->query('genre');
-        $selectedDirector = $request->query('director');
-
         $query = Movie::with('genre');
 
-        if ($selectedGenre) {
-            $query->whereHas('genre', function ($q) use ($selectedGenre) {
-                $q->where('name', $selectedGenre);
+        if ($request->filled('genre')) {
+            $query->whereHas('genre', function ($q) use ($request) {
+                $q->where('name', $request->genre);
             });
         }
 
-        if ($selectedDirector) {
-            $query->where('director', $selectedDirector);
+        if ($request->filled('director')) {
+            $query->where('director', $request->director);
+        }
+
+        if ($request->has('featured')) {
+            // Adjust condition based on your schema if featured exists, or keep as needed
         }
 
         $movies = $query->get();
-
         $genres = Genre::all();
+        $selectedGenre = $request->genre;
+        $selectedDirector = $request->director;
+        $queryCount = \DB::getQueryLog();
+        $queryCount = count($queryCount);
 
-        $queryCount = count(DB::getQueryLog());
-
-        return view('movies.index', compact('movies', 'selectedGenre', 'selectedDirector', 'genres', 'queryCount'));
+        return view('movies.index', compact('movies', 'genres', 'selectedGenre', 'selectedDirector', 'queryCount'));
     }
 
     public function create()
@@ -45,16 +44,50 @@ class MovieController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'genre_id'    => 'required|exists:genres,id',
-            'director'    => 'required|string|max:255',
-            'year'        => 'required|integer',
-            'is_featured' => 'nullable|boolean',
+        $request->validate([
+            'title' => 'required|max:255',
+            'genre_id' => 'required',
+            'director' => 'required|max:255',
+            'year' => 'required|integer',
         ]);
 
-        Movie::create($validated);
+        Movie::create($request->all());
 
-        return redirect()->route('movies.index')->with('success', 'Movie added successfully!');
+        return redirect()->route('movies.index')
+            ->with('success', 'Movie created successfully!');
+    }
+
+    public function show(Movie $movie)
+    {
+        return view('movies.show', compact('movie'));
+    }
+
+    public function edit(Movie $movie)
+    {
+        $genres = Genre::all();
+        return view('movies.edit', compact('movie', 'genres'));
+    }
+
+    public function update(Request $request, Movie $movie)
+    {
+        $request->validate([
+            'title' => 'required|max:255',
+            'genre_id' => 'required',
+            'director' => 'required|max:255',
+            'year' => 'required|integer',
+        ]);
+
+        $movie->update($request->all());
+
+        return redirect()->route('movies.index')
+            ->with('success', 'Movie updated successfully!');
+    }
+
+    public function destroy(Movie $movie)
+    {
+        $movie->delete();
+
+        return redirect()->route('movies.index')
+            ->with('success', 'Movie deleted successfully!');
     }
 }
